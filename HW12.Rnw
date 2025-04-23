@@ -16,6 +16,7 @@
 \begin{document}
 <<echo=F, message=F, warning=F>>=
 library(tidyverse)
+library(VGAM)
 @
 
 \begin{enumerate}
@@ -49,13 +50,77 @@ alternative.
 \begin{enumerate}
   \item What values of $t_{20}$ provide statistically discernible support for the
   alternative hypothesis?
+  <<message=F, warning=F>>=
+    # part A 
+alpha <- 0.05
+sample.sizeA <- 20
+(hA.support20 = qt(p = 1-alpha, df = sample.sizeA-1))
+    @
+\textbf{Solution:} Any value for $t_{20} \geq 1.729$ provides statistically discernible support for the alternative hypothesis.
   \item What values of $t_{30}$ provide statistically discernible support for the
   alternative hypothesis?
+  <<message = F, warning = F>>=
+# part B
+alpha <- 0.05
+sample.sizeB <- 30
+(hA.support30 = qt(p = 1-alpha, df = sample.sizeB-1))
+@
+\textbf{Solution:} Any value for $t_30{30} \geq 1.699$ provides statistically discernible support for the alternative hypothesis.
   \item Suppose $f_X(x)$ is a Laplace distribution with $a=0$ and $b=4.0$.
   Conduct a simulation study to assess the Type I error rate of this approach.\\
   \textbf{Note:} You can use the \texttt{rlaplace()} function from the \texttt{VGAM}
   package for \texttt{R} \citep{VGAM}.
-  \item \textbf{Optional Challenge:} Can you find a value of $\alpha<0.05$ that yields a 
+  <<message = F, warning = F>>=
+# part C 
+# simulation study 
+mu0 <- 0
+num.sims <- 10000
+a <- 0
+b <- 4.0
+
+# errors
+type1error.n20.peek <- 0
+type1error.n30.peek <- 0
+type1error.n30.final <- 0
+
+for(i in 1:num.sims){
+  # sims for n = 20 peek, n = 30
+  curr.sim30 <- rlaplace(n=sample.sizeB, location = a, scale = b)
+  curr.sim20 <- curr.sim30[1:20]
+  
+  # t test for n = 20 peek
+  n20.test <- t.test(x = curr.sim20, mu = mu0, alternative = "greater")
+  n20.t <- n20.test$statistic
+  
+  # t test for n = 30
+  n30.test <- t.test(x = curr.sim30, mu = mu0, alternative = "greater")
+  n30.t <- n30.test$statistic
+  
+  # if hA is supported with n = 20
+  # if not continue on and see if hA is supported with n = 30
+  if (n20.t >= hA.support20){
+    type1error.n20.peek <- type1error.n20.peek + 1
+  }
+  
+  # situation where researchers do not peek the data
+  else if(n30.t >= hA.support30){
+    type1error.n30.peek <- type1error.n30.peek + 1
+  }
+
+  if (n30.t >= hA.support30){
+    type1error.n30.final <- type1error.n30.final + 1
+  }
+}
+
+
+(e.rate.final <- type1error.n30.final/num.sims)
+
+(e.rate.peek <- (type1error.n20.peek + type1error.n30.peek)
+                /num.sims)
+# the final error rate may differ each time, due to the randomness of rlaplace()
+@
+\textbf{Solution:} When using the researchers' approach of ``peeking" at the data after $20$ months, the Type I error rate is \Sexpr{e.rate.peek}. However, when just continuing through the $30$ months, the Type I error rate is \Sexpr{e.rate.final}. As shown, the Type I error rate is discernibly higher when using the researchers' approach, above the accepted $\alpha = 0.05$, compared to the Type I error rate after waiting $30$ months.
+\item \textbf{Optional Challenge:} Can you find a value of $\alpha<0.05$ that yields a 
   Type I error rate of 0.05?
 \end{enumerate}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
