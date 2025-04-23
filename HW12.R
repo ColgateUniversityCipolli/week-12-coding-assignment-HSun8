@@ -3,6 +3,7 @@
 # Q: do i need to set.seed()? type 1 errors will change every time
 library(tidyverse)
 library(VGAM)
+library(xtable)
 ################################################################################
 # Problem 1 
 # part A 
@@ -62,13 +63,13 @@ for(i in 1:num.sims){
 
 ################################################################################
 # Problem 2
-# part a
 betatype1.errors <- function(a, b){
   num.sims <- 1000
   alpha <- a
   beta <- b
   pop.mean <- alpha/(alpha + beta)
-  
+  dist.skew <- (2*(beta-alpha)*sqrt(alpha+beta+1))/
+               ((alpha + beta + 2)*sqrt(alpha*beta))
   sample.size2 <- 15
   
   # errors
@@ -105,8 +106,8 @@ betatype1.errors <- function(a, b){
   error.right <- righttail.errors/num.sims
   error.twotail <- twotail.errors/num.sims
   
-  tibble(type = c("left tailed", "right tailed", "two tailed"),
-         errors = c(error.left, error.right, error.twotail)) |>
+  tibble(type = c("left tailed", "right tailed", "two tailed", "skewness"),
+         errors = c(error.left, error.right, error.twotail, dist.skew)) |>
     pivot_wider(names_from = type, values_from = errors)
 }
 
@@ -114,6 +115,7 @@ errors.data <- tibble(bind_rows(betatype1.errors(a = 10, b = 2),
 betatype1.errors(a = 2, b = 10),
 betatype1.errors(a = 10, b = 10)))
 
-View(errors.table <- tibble(distribution = c("Beta(10,2)", "Beta(2,10)", 
-                                        "Beta(10,10)"), errors.data))
+errors.table <- tibble(distribution = c("Beta(10,2)", "Beta(2,10)", 
+                                        "Beta(10,10)"), errors.data)
 
+xtable(errors.table)
