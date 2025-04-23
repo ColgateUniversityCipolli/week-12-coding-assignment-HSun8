@@ -17,6 +17,7 @@
 <<echo=F, message=F, warning=F>>=
 library(tidyverse)
 library(VGAM)
+library(xtable)
 @
 
 \begin{enumerate}
@@ -65,7 +66,7 @@ alpha <- 0.05
 sample.sizeB <- 30
 (hA.support30 = qt(p = 1-alpha, df = sample.sizeB-1))
 @
-\textbf{Solution:} Any value for $t_30{30} \geq 1.699$ provides statistically discernible support for the alternative hypothesis.
+\textbf{Solution:} Any value for $t_{30} \geq 1.699$ provides statistically discernible support for the alternative hypothesis.
   \item Suppose $f_X(x)$ is a Laplace distribution with $a=0$ and $b=4.0$.
   Conduct a simulation study to assess the Type I error rate of this approach.\\
   \textbf{Note:} You can use the \texttt{rlaplace()} function from the \texttt{VGAM}
@@ -133,15 +134,102 @@ for(i in 1:num.sims){
   and Beta(10,10) distributions and conduct the following hypothesis tests against 
   the actual mean for each case (e.g., $\frac{10}{10+2}$, $\frac{2}{10+2}$, and 
   $\frac{10}{10+10}$). 
+  <<warning = F, message = F>>=
+# Problem 2
+# set.seed() so results reproducible (can use xtable)
+set.seed(123456)
+betatype1.errors <- function(a, b){
+  num.sims <- 1000
+  alpha <- a
+  beta <- b
+  pop.mean <- alpha/(alpha + beta)
+  dist.skew <- (2*(beta-alpha)*sqrt(alpha+beta+1))/
+               ((alpha + beta + 2)*sqrt(alpha*beta))
+  sample.size2 <- 15
+  
+  # errors
+  righttail.errors <- 0 
+  lefttail.errors <- 0
+  twotail.errors <- 0
+  
+  for(i in 1:num.sims){
+    # sims using rbeta, n = 15
+    curr.sim <- rbeta(n=sample.size2, shape1 = alpha, shape2 = beta)
+    
+    # t test for right tail 
+    t.right <- t.test(x=curr.sim, mu = pop.mean, alternative = "greater")
+    right.pval <- t.right$p.value
+    # t test for left tail 
+    t.left <- t.test(x=curr.sim, mu = pop.mean, alternative = "less")
+    left.pval <- t.left$p.value
+    # t test for two tailed
+    t.twotail <- t.test(x=curr.sim, mu = pop.mean, alternative = "two.sided")
+    twotail.pval <- t.twotail$p.value
+    
+    # count errors
+    if (right.pval < 0.05){
+      righttail.errors <- righttail.errors + 1
+    }
+    if (left.pval < 0.05){
+      lefttail.errors <- lefttail.errors + 1
+    }
+    if(twotail.pval < 0.05){
+      twotail.errors <- twotail.errors + 1
+    }
+  }
+  
+  # find proportion
+  error.left <- lefttail.errors/num.sims
+  error.right <- righttail.errors/num.sims
+  error.twotail <- twotail.errors/num.sims
+  
+  tibble(type = c("left tailed", "right tailed", "two tailed", "skewness"),
+         errors = c(error.left, error.right, error.twotail, dist.skew)) |>
+    pivot_wider(names_from = type, values_from = errors)
+}
+
+errors.data <- tibble(bind_rows(betatype1.errors(a = 10, b = 2),
+betatype1.errors(a = 2, b = 10),
+betatype1.errors(a = 10, b = 10)))
+
+# consolidate data 
+(errors.table <- tibble(distribution = c("Beta(10,2)", "Beta(2,10)", 
+                                        "Beta(10,10)"), errors.data))
+
+xtable(errors.table)
+@
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrr}
+  \hline
+ distribution & left-tailed test & right-tailed test & two-tailed test & skewness \\ 
+  \hline
+Beta(10,2) & 0.030 & 0.075 & 0.051 & -0.921 \\ 
+Beta(2,10) & 0.071 & 0.030 & 0.055 & 0.921 \\ 
+Beta(10,10) & 0.051 & 0.048 & 0.044 & 0.000 \\ 
+   \hline
+\end{tabular}
+\caption{Type I error proportions for different beta distributions, along with the skewness for each distribution.}
+\label{table1}
+\end{table}
+
   \begin{enumerate}
     \item What proportion of the time do we make an error of Type I for a
-    left-tailed test?
+    left-tailed test? \\
+    \textbf{Solution:} The Type I error proportions for a left-tailed test are \Sexpr{errors.data$`left tailed`[1]} for the Beta(10, 2) distribution, \Sexpr{errors.table$`left tailed`[2]} for the Beta(2, 10) distribution, and \Sexpr{errors.table$`left tailed`[3]} for the Beta(10, 10) distribution. 
     \item What proportion of the time do we make an error of Type I for a
-    right-tailed test?
+    right-tailed test? \\
+    \textbf{Solution:} The Type I error proportions for a right-tailed test are \Sexpr{errors.data$`right tailed`[1]} for the Beta(10, 2) distribution, \Sexpr{errors.table$`right tailed`[2]} for the Beta(2, 10) distribution, and \Sexpr{errors.table$`right tailed`[3]} for the Beta(10, 10) distribution. 
     \item What proportion of the time do we make an error of Type I for a
-    two-tailed test?
+    two-tailed test? \\
+    \textbf{Solution:} The Type I error proportions for a two-tailed test are \Sexpr{errors.data$`two tailed`[1]} for the Beta(10, 2) distribution, \Sexpr{errors.table$`two tailed`[2]} for the Beta(2, 10) distribution, and \Sexpr{errors.table$`two tailed`[3]} for the Beta(10, 10) distribution. 
     \item How does skewness of the underlying population distribution effect
-    Type I error across the test types?
+    Type I error across the test types? \\
+    \textbf{Solution:} The skewness and Type 1 error proportions of each distribution can be found in Table \ref{table1}. \\
+The Beta(10, 2) distribution is left-skewed, increasing the proportion of Type 1 errors for the right-tailed test and decreasing the proportion of Type 1 errors for the left-tailed test. \\
+The Beta(2, 10) distribution is right-skewed, increasing the proportion of Type 1 errors for the left-tailed test and decreasing the proportion of Type 1 errors for the right-tailed test. \\
+The Beta(10, 10) distribution is symmetric, so the proportion of Type 1 errors for all tests is just about the same. 
+  
   \end{enumerate}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -63,6 +63,7 @@ for(i in 1:num.sims){
 
 ################################################################################
 # Problem 2
+set.seed(123456)
 betatype1.errors <- function(a, b){
   num.sims <- 1000
   alpha <- a
@@ -91,6 +92,7 @@ betatype1.errors <- function(a, b){
     t.twotail <- t.test(x=curr.sim, mu = pop.mean, alternative = "two.sided")
     twotail.pval <- t.twotail$p.value
     
+    # count errors
     if (right.pval < 0.05){
       righttail.errors <- righttail.errors + 1
     }
@@ -102,6 +104,7 @@ betatype1.errors <- function(a, b){
     }
   }
   
+  # find proportion
   error.left <- lefttail.errors/num.sims
   error.right <- righttail.errors/num.sims
   error.twotail <- twotail.errors/num.sims
@@ -115,6 +118,7 @@ errors.data <- tibble(bind_rows(betatype1.errors(a = 10, b = 2),
 betatype1.errors(a = 2, b = 10),
 betatype1.errors(a = 10, b = 10)))
 
+# consolidate data 
 errors.table <- tibble(distribution = c("Beta(10,2)", "Beta(2,10)", 
                                         "Beta(10,10)"), errors.data)
 
